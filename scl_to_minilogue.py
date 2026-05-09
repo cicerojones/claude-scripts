@@ -125,11 +125,16 @@ def print_table(
         coarse_offset = round(total_cents / 100)
         fine_cents = total_cents - coarse_offset * 100.0
 
+        # Fine expressed in Yamaha Motif units: -64..+63 spans ±100 cents (1.5625 ¢/unit).
+        # Normalize to non-negative fine: borrow one coarse step when fine would be negative.
+        fine_motif = max(-64, min(63, round(fine_cents / 1.5625)))
+        if fine_motif < 0:
+            coarse_offset -= 1
+            fine_motif += 64
+
         coarse_midi = root_midi + coarse_offset
         coarse_name = midi_to_note_name(max(0, min(127, coarse_midi)))
         coarse_str = f"{coarse_name} ({'+' if coarse_offset >= 0 else ''}{coarse_offset})"
-        # Fine expressed in Yamaha Motif units: -64..+63 spans ±100 cents (1.5625 ¢/unit)
-        fine_motif = max(-64, min(63, round(fine_cents / 1.5625)))
         fine_str = f"{'+' if fine_motif >= 0 else ''}{fine_motif}"
 
         period_marker = "  ← period" if (step > 0 and degree == 0) else ""
