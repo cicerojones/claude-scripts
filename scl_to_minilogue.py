@@ -20,6 +20,14 @@ import math
 import sys
 from pathlib import Path
 
+NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+
+
+def midi_to_note_name(midi_note: int) -> str:
+    """Return the note name for a MIDI note number, e.g. 60 -> 'C4'."""
+    octave = midi_note // 12 - 1
+    return f"{NOTE_NAMES[midi_note % 12]}{octave}"
+
 
 def parse_scl(filepath: Path) -> tuple[str, list[float]]:
     """Parse a Scala .scl file.
@@ -79,10 +87,66 @@ def _pitch_to_mts_bytes(semitone_float: float) -> tuple[int, int, int]:
     return xx, yy, zz
 
 
+def print_table(
+    description: str,
+    cents_values: list[float],
+    root_midi: int = 60,
+    all_notes: bool = False,
+) -> None:
+    """Print a human-readable mapping table for a scale.
+
+    Each row shows a physical key, its target pitch in cents from the root,
+    the nearest whole semitone (coarse), and the remaining cents deviation (fine).
+    """
+    n = len(cents_values)
+    period_cents = cents_values[-1]
+
+    root_name = midi_to_note_name(root_midi)
+    print(f"\nScale: {description}")
+    print(f"Root:  {root_name} (MIDI {root_midi})  |  {n}-note scale, period {period_cents:.2f}¢\n")
+
+    header = f"{'Key':<6}  {'Cents from root':>16}  {'Coarse':>12}  {'Fine':>9}"
+    print(header)
+    print("-" * len(header))
+
+    num_rows = 128 if all_notes else n + 1  # +1 to include the period/closing note
+
+    for step in range(num_rows):
+        midi_note = root_midi + step
+        if not (0 <= midi_note <= 127):
+            break
+
+        octave = step // n
+        degree = step % n
+
+        cents_from_root = 0.0 if degree == 0 else cents_values[degree - 1]
+        total_cents = octave * period_cents + cents_from_root
+
+        coarse_offset = round(total_cents / 100)
+        fine_cents = total_cents - coarse_offset * 100.0
+
+        coarse_midi = root_midi + coarse_offset
+        coarse_name = midi_to_note_name(max(0, min(127, coarse_midi)))
+        coarse_str = f"{coarse_name} ({'+' if coarse_offset >= 0 else ''}{coarse_offset})"
+        fine_str = f"{'+' if fine_cents >= 0 else ''}{fine_cents:.2f}¢"
+
+        period_marker = "  ← period" if (step > 0 and degree == 0) else ""
+
+        print(
+            f"{midi_to_note_name(midi_note):<6}"
+            f"  {total_cents:>15.2f}¢"
+            f"  {coarse_str:>12}"
+            f"  {fine_str:>9}"
+            f"{period_marker}"
+        )
+
+    print()
+
+
 def scale_to_mts(
     description: str,
     cents_values: list[float],
-    root_midi: int = 69,
+    root_midi: int = 60,
     device_id: int = 0x00,
     tuning_program: int = 0,
 ) -> bytes:
@@ -91,7 +155,7 @@ def scale_to_mts(
     Args:
         description:    Scale description (used as the 16-byte name).
         cents_values:   N cent values from the .scl file (period is last).
-        root_midi:      MIDI note number that plays the scale root (default 69 = A4).
+        root_midi:      MIDI note number that plays the scale root (default 60 = C4).
         device_id:      SysEx device ID byte (default 0x00 = all devices).
         tuning_program: Tuning program slot 0-127 (default 0).
 
@@ -152,7 +216,7 @@ def scale_to_mts(
 def convert_file(
     scl_path: Path,
     syx_path: Path,
-    root_midi: int = 69,
+    root_midi: int = 60,
     device_id: int = 0x00,
     tuning_program: int = 0,
 ) -> None:
@@ -165,7 +229,7 @@ def convert_file(
 def convert_directory(
     input_dir: Path,
     output_dir: Path,
-    root_midi: int = 69,
+    root_midi: int = 60,
     device_id: int = 0x00,
 ) -> None:
     scl_files = sorted(input_dir.glob("*.scl"))
@@ -201,28 +265,43 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Single file, output alongside input:
+  # Show mapping table for a scale (one period, root C4):
+  python scl_to_minilogue.py --table myscale.scl
+
+  # Table with all 128 MIDI notes:
+  python scl_to_minilogue.py --table --all-notes myscale.scl
+
+  # Table with a different root:
+  python scl_to_minilogue.py --table --root 69 myscale.scl
+
+  # Convert a single file (output alongside input):
   python scl_to_minilogue.py myscale.scl
 
-  # Single file, explicit output path:
+  # Convert a single file to an explicit path:
   python scl_to_minilogue.py myscale.scl -o output/myscale.syx
 
-  # Whole directory of .scl files -> output/ folder:
+  # Convert a whole directory of .scl files:
   python scl_to_minilogue.py scales/ -o output/
-
-  # Root note C4 (MIDI 60) instead of A4 (69):
-  python scl_to_minilogue.py scales/ -o output/ --root 60
 """,
     )
     parser.add_argument("input", help=".scl file or directory of .scl files")
     parser.add_argument("-o", "--output", help="Output .syx file or directory (default: alongside input)")
     parser.add_argument(
+        "-t", "--table",
+        action="store_true",
+        help="Print a mapping table instead of writing a .syx file (single file only)",
+    )
+    parser.add_argument(
+        "--all-notes",
+        action="store_true",
+        help="With --table: show all 128 MIDI notes instead of one period",
+    )
+    parser.add_argument(
         "--root",
         type=int,
-        default=69,
+        default=60,
         metavar="MIDI_NOTE",
-        help="MIDI note number for the scale root (default: 69 = A4). "
-             "Common values: 60=C4, 69=A4",
+        help="MIDI note number for the scale root (default: 60 = C4)",
     )
     parser.add_argument(
         "--device-id",
@@ -242,9 +321,19 @@ Examples:
     args = parser.parse_args()
     input_p = Path(args.input)
 
+    if args.table:
+        if not input_p.is_file():
+            print("Error: --table requires a single .scl file, not a directory.", file=sys.stderr)
+            sys.exit(1)
+        description, cents_values = parse_scl(input_p)
+        print_table(description, cents_values, args.root, args.all_notes)
+        return
+
     if input_p.is_dir():
-        out = Path(args.output) if args.output else input_p
-        convert_directory(input_p, out, args.root, args.device_id)
+        if args.output is None:
+            print("Error: -o/--output is required when converting a directory.", file=sys.stderr)
+            sys.exit(1)
+        convert_directory(input_p, Path(args.output), args.root, args.device_id)
     elif input_p.is_file():
         if args.output:
             out = Path(args.output)
