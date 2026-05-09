@@ -1,0 +1,8 @@
+* Task: Build CSV parser
+** Constraints
+- Output to src/parsers
+- No external dependencies beyond stdlib
+- Ask before creating any new file
+** Acceptance criteria
+- Reads fro stdin
+- Outputs JSON
