@@ -66,6 +66,9 @@ function load_directory(dir) {
     syx_files   = [];
     current_idx = 0;
 
+    // Normalise: strip trailing slash so path joins are consistent
+    dir = dir.replace(/\/$/, "");
+
     var folder = new Folder(dir);
     if (!folder) {
         post("syx_player: could not open directory: " + dir + "\n");
@@ -74,7 +77,8 @@ function load_directory(dir) {
 
     while (!folder.end) {
         if (folder.filename.match(/\.syx$/i)) {
-            syx_files.push(folder.pathname);
+            // folder.pathname is the directory path; append filename explicitly
+            syx_files.push(dir + "/" + folder.filename);
         }
         folder.next();
     }
@@ -85,6 +89,41 @@ function load_directory(dir) {
 
     post("syx_player: loaded " + syx_files.length
          + " .syx file(s) from " + dir + "\n");
+}
+
+// ---------------------------------------------------------------------------
+// Diagnostics — send the message "listfiles" or "testsyx" to the js object
+// ---------------------------------------------------------------------------
+
+// Post all discovered paths to the console
+function listfiles() {
+    if (syx_files.length === 0) {
+        post("syx_player: no files loaded\n");
+        return;
+    }
+    post("syx_player: " + syx_files.length + " file(s):\n");
+    for (var i = 0; i < syx_files.length; i++) {
+        post("  [" + i + "] " + syx_files[i] + "\n");
+    }
+}
+
+// Attempt to open the first file and report its size — confirms file access
+function testsyx() {
+    if (syx_files.length === 0) {
+        post("syx_player: no files loaded\n");
+        return;
+    }
+    var path = syx_files[0];
+    var f = new File(path, "read", "ubin");
+    if (!f.isopen) {
+        post("syx_player: FAIL — could not open: " + path + "\n");
+        return;
+    }
+    var size = f.eof;
+    f.close();
+    post("syx_player: OK — opened '" + filename_from_path(path)
+         + "', size = " + size + " bytes"
+         + (size === 408 ? " (correct)\n" : " (unexpected — expected 408)\n"));
 }
 
 function send_syx(path) {
