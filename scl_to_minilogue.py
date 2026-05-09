@@ -105,7 +105,7 @@ def print_table(
     print(f"\nScale: {description}")
     print(f"Root:  {root_name} (MIDI {root_midi})  |  {n}-note scale, period {period_cents:.2f}¢\n")
 
-    header = f"{'Key':<6}  {'Cents from root':>16}  {'Coarse':>12}  {'Fine':>9}"
+    header = f"{'Key':<6}  {'Cents from root':>16}  {'Coarse':>12}  {'Fine':>6}"
     print(header)
     print("-" * len(header))
 
@@ -128,7 +128,9 @@ def print_table(
         coarse_midi = root_midi + coarse_offset
         coarse_name = midi_to_note_name(max(0, min(127, coarse_midi)))
         coarse_str = f"{coarse_name} ({'+' if coarse_offset >= 0 else ''}{coarse_offset})"
-        fine_str = f"{'+' if fine_cents >= 0 else ''}{fine_cents:.2f}¢"
+        # Fine expressed in Yamaha Motif units: -64..+63 spans ±100 cents (1.5625 ¢/unit)
+        fine_motif = max(-64, min(63, round(fine_cents / 1.5625)))
+        fine_str = f"{'+' if fine_motif >= 0 else ''}{fine_motif}"
 
         period_marker = "  ← period" if (step > 0 and degree == 0) else ""
 
@@ -136,7 +138,7 @@ def print_table(
             f"{midi_to_note_name(midi_note):<6}"
             f"  {total_cents:>15.2f}¢"
             f"  {coarse_str:>12}"
-            f"  {fine_str:>9}"
+            f"  {fine_str:>6}"
             f"{period_marker}"
         )
 
