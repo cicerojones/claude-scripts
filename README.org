@@ -1,0 +1,9 @@
+var SYX_DIR = "/Users/stephenstrauss/syx";  // ← edit this path
+var SYX_DIR = "/Users/oi/repos/claudeProjects/output/";  // ← edit this pathp
+
+/Users/oi/repos/claudeProjects/output/05-19.syx
+
+js: syx_player: FAIL — could not open: /Users/oi/repos/claudeProjects/output/05-19.syx 
+
+
+
