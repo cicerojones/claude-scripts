@@ -220,17 +220,43 @@ def scale_to_mts(
     return sysex
 
 
+def syx_to_coll_line(index: int, data: bytes) -> str:
+    """Format one SysEx payload as a Max [coll] text line.
+
+    Format:  index, b0 b1 b2 ... bN;
+    Bytes are decimal integers separated by spaces.
+    """
+    byte_str = " ".join(str(b) for b in data)
+    return f"{index}, {byte_str};"
+
+
+def write_coll_file(entries: list[tuple[int, bytes, str]], coll_path: Path) -> None:
+    """Write a [coll]-formatted text file.
+
+    entries — list of (index, sysex_bytes, label) tuples.
+    Each entry is a single line: index, b0 b1 ... bN;
+    No comment lines — [coll] does not support them.
+    """
+    lines = [syx_to_coll_line(index, data) for index, data, _label in entries]
+    coll_path.write_text("\n".join(lines) + "\n", encoding="ascii")
+    print(f"  coll file -> {coll_path.name}  ({len(entries)} entries)")
+
+
 def convert_file(
     scl_path: Path,
     syx_path: Path,
     root_midi: int = 60,
     device_id: int = 0x00,
     tuning_program: int = 0,
+    write_coll: bool = False,
 ) -> None:
     description, cents_values = parse_scl(scl_path)
     sysex = scale_to_mts(description, cents_values, root_midi, device_id, tuning_program)
     syx_path.write_bytes(sysex)
     print(f"  {scl_path.name}  ->  {syx_path.name}  ({len(cents_values)}-note scale, period {cents_values[-1]:.2f}¢)")
+    if write_coll:
+        coll_path = syx_path.with_suffix(".txt")
+        write_coll_file([(0, sysex, description)], coll_path)
 
 
 def convert_directory(
@@ -238,6 +264,7 @@ def convert_directory(
     output_dir: Path,
     root_midi: int = 60,
     device_id: int = 0x00,
+    write_coll: bool = False,
 ) -> None:
     scl_files = sorted(input_dir.glob("*.scl"))
     if not scl_files:
@@ -248,13 +275,23 @@ def convert_directory(
     print(f"Converting {len(scl_files)} file(s) from {input_dir} -> {output_dir}")
 
     errors = 0
+    coll_entries: list[tuple[int, bytes, str]] = []
+
     for i, scl_file in enumerate(scl_files):
         syx_file = output_dir / (scl_file.stem + ".syx")
         try:
-            convert_file(scl_file, syx_file, root_midi, device_id, tuning_program=i % 128)
+            description, cents_values = parse_scl(scl_file)
+            sysex = scale_to_mts(description, cents_values, root_midi, device_id, tuning_program=i % 128)
+            syx_file.write_bytes(sysex)
+            print(f"  {scl_file.name}  ->  {syx_file.name}  ({len(cents_values)}-note scale, period {cents_values[-1]:.2f}¢)")
+            if write_coll:
+                coll_entries.append((i, sysex, description))
         except Exception as exc:
             print(f"  ERROR {scl_file.name}: {exc}")
             errors += 1
+
+    if write_coll and coll_entries:
+        write_coll_file(coll_entries, output_dir / "scales.txt")
 
     if errors:
         print(f"\n{errors} file(s) failed.")
@@ -289,6 +326,12 @@ Examples:
 
   # Convert a whole directory of .scl files:
   python scl_to_minilogue.py scales/ -o output/
+
+  # Convert a directory and write a Max [coll] text file (scales.txt):
+  python scl_to_minilogue.py scales/ -o output/ --coll
+
+  # Single file with [coll] sidecar:
+  python scl_to_minilogue.py myscale.scl --coll
 """,
     )
     parser.add_argument("input", help=".scl file or directory of .scl files")
@@ -324,6 +367,15 @@ Examples:
         metavar="N",
         help="Tuning program number 0-127 for single-file conversion (default: 0)",
     )
+    parser.add_argument(
+        "--coll",
+        action="store_true",
+        help=(
+            "Also write a Max [coll] formatted text file. "
+            "Directory mode: one scales.txt containing all entries indexed by position. "
+            "Single file mode: a .txt sidecar alongside the .syx."
+        ),
+    )
 
     args = parser.parse_args()
     input_p = Path(args.input)
@@ -340,7 +392,7 @@ Examples:
         if args.output is None:
             print("Error: -o/--output is required when converting a directory.", file=sys.stderr)
             sys.exit(1)
-        convert_directory(input_p, Path(args.output), args.root, args.device_id)
+        convert_directory(input_p, Path(args.output), args.root, args.device_id, args.coll)
     elif input_p.is_file():
         if args.output:
             out = Path(args.output)
@@ -348,7 +400,7 @@ Examples:
                 out = out / (input_p.stem + ".syx")
         else:
             out = input_p.with_suffix(".syx")
-        convert_file(input_p, out, args.root, args.device_id, args.program)
+        convert_file(input_p, out, args.root, args.device_id, args.program, args.coll)
     else:
         print(f"Error: {args.input!r} is not a file or directory", file=sys.stderr)
         sys.exit(1)
