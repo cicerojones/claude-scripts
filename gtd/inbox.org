@@ -1,0 +1,19 @@
+#+TITLE: Inbox
+#+STARTUP: overview
+
+Capture inbox. See ../gtd/CONVENTIONS.org for the schema.
+
+Automated captures (via capture.py) are appended below this line as
+flat top-level headlines. Nothing above this point is ever edited by
+automation.
+
+Example of what capture.py appends (shown as a comment block so it
+never appears as a real task in your agenda):
+
+#+begin_example
+* TODO Call dentist about appointment                          :@calls:
+:PROPERTIES:
+:CREATED:  [2026-08-20 Thu 10:15]
+:CAPTURED-BY: claude
+:END:
+#+end_example

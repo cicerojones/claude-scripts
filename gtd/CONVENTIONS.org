@@ -1,0 +1,65 @@
+#+TITLE: GTD Org Conventions
+#+STARTUP: overview
+
+Schema that both Emacs/org-mode and Claude automation follow, so
+automated writes are indistinguishable from hand-captured entries.
+Adjust the keyword/tag lists below to match your real
+org-todo-keywords / org-tag-alist, then this file is the source of
+truth for both.
+
+* TODO keyword sequence
+
+  TODO -> NEXT -> WAITING -> | -> DONE -> CANCELLED
+
+  Elisp for reference (adjust to taste):
+  #+begin_src emacs-lisp
+  (setq org-todo-keywords
+        '((sequence "TODO" "NEXT" "WAITING" "|" "DONE" "CANCELLED")))
+  #+end_src
+
+* Files and write ownership
+
+  | File               | Owner            | Automation may... |
+  |--------------------+------------------+--------------------|
+  | gtd/inbox.org      | Claude + human   | APPEND only        |
+  | gtd/projects.org   | human (Emacs)    | read only, for now |
+  | gtd/someday.org    | human (Emacs)    | read only, for now |
+
+  Automation never edits or deletes an existing headline anywhere.
+  The only write operation it performs is appending a new top-level
+  headline to gtd/inbox.org. Refiling inbox items into project files
+  stays a manual (or future, separately-earned) step.
+
+* Capture headline format
+
+  Every automated capture is a flat top-level headline:
+
+  #+begin_example
+  * TODO <description>                                        :tag:
+  :PROPERTIES:
+  :CREATED:  [2026-08-20 Thu 10:15]
+  :CAPTURED-BY: claude
+  :END:
+  #+end_example
+
+  - =:CREATED:= — timestamp of capture, for weekly-review staleness checks.
+  - =:CAPTURED-BY:= — always "claude" for automated entries, so a
+    linter or review script can distinguish them from hand-typed
+    captures at a glance.
+
+* Context tags
+
+  Standard GTD contexts, org-mode @-tag convention:
+
+  =@calls=  =@computer=  =@errand=  =@home=  =@waiting=  =@agenda=
+
+  A capture may carry zero or one context tag. Automation should not
+  guess a context it isn't confident about — untagged is correct
+  more often than a wrong guess, since GTD processing (a human step)
+  is where the real context gets assigned.
+
+* Every automated write is its own git commit
+
+  One capture, one commit, message prefixed =capture: <text>=. This
+  makes automation's edits reviewable and revertable exactly like
+  any other change to the tree — see capture.py.
