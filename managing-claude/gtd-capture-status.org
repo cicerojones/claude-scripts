@@ -1,0 +1,89 @@
+#+TITLE: GTD Capture — Session Wrap-up (2026-09-06)
+#+STARTUP: overview
+
+Status log for the Claude-assisted, org-mode/GTD-inspired capture
+exploration, so a future session (or a /managing-claude project, if
+this gets copied there) can pick up without re-deriving context.
+
+* Goal
+
+  Explore what Claude-enabled automation can add to an existing,
+  mature Emacs + org-mode GTD workflow (Mac + Android/Orgzly), without
+  replacing any of it — see gtd/CONVENTIONS.org in this repo for the
+  schema this converged on.
+
+* What exists now
+
+  - =gtd/CONVENTIONS.org= — TODO keyword sequence, tag conventions,
+    capture headline format, write-ownership rules.
+  - =gtd/inbox.org=, =capture.py= — the *first-draft* design: an
+    append-only local file in this git repo, appended to by a small
+    Python script, one git commit per capture. Built and tested
+    working. Superseded as the live target (see below) but left in
+    place as a working demo of the format/mechanics.
+  - Real, live target (current): Dropbox folder
+    =/downloads-REMOTE/MOVING-remote/2021-spring-fall/Dropbox-small-org/=,
+    which Orgzly already syncs against and which already held
+    organic, in-use captures (e.g. =capture-Aug26.org=) using this
+    exact TODO/SCHEDULED/CREATED shape — the convention was matched
+    to what was already there, not invented fresh.
+  - One proof-of-concept file written there via the Dropbox MCP
+    connector: =capture-Sep06.org=, containing a single clearly
+    labeled test TODO ("safe to delete"). Written directly by Claude
+    in a chat turn — no automation, no cron, nothing unattended.
+
+* Key constraints discovered along the way
+
+  - The Dropbox connector can only *create* new files — no in-place
+    edit/overwrite of existing content. This is why the convention is
+    "one new file per capture session" (=capture-<Mon><DD>.org=)
+    rather than appending to a single running inbox.org.
+  - The plain consumer Claude mobile app has no filesystem/shell
+    access and acts only through connectors; at the start of this
+    session none were enabled. A Dropbox connector became available
+    mid-session and is what made the retarget above possible.
+  - *Unresolved friction (found 2026-09-06, end of session):* Dropbox
+    on macOS can leave files "online-only" — 0 bytes on local disk,
+    not actually materialized — until some local app (Finder preview,
+    TextEdit, etc.) forces a real download. Emacs can only see/write a
+    file once that's happened. So a file the Dropbox connector creates
+    in the cloud is not guaranteed to be immediately visible/editable
+    from Emacs. This is a macOS/Dropbox client setting (forcing the
+    folder to "Local" rather than "online-only" storage), not
+    something fixable from an automation session — needs to be set on
+    the Mac directly. Left open; next session should check whether
+    setting that folder to always-local storage resolves it.
+
+* Immediate next actions
+
+  1. Confirm =capture-Sep06.org= actually shows up (and is editable)
+     in Emacs on the Mac; delete the test entry once confirmed.
+  2. On the Mac, check Dropbox's local-vs-online-only setting for
+     =Dropbox-small-org/= (or its parent) and set it to always keep
+     files local, to remove the materialization gap above.
+  3. Decide if/when this moves past proof-of-concept — e.g. whether
+     the read-only "project has no next action" linter (never built)
+     is still worth doing, or whether ad hoc "ask Claude to jot this
+     down" is enough for now.
+
+* Deferred, separate thread: Dropbox cleanup
+
+  Not started — explicitly deferred to a later session. While
+  locating the live capture folder, found the account also holds a
+  large, old, mostly-untouched migration archive (paths under
+  =Archives-ALL/MOVING-remote/Archive/...=, content dating to
+  2017-2019) plus ~30 unrelated "stray, auxiliary" files sitting
+  alongside the live capture files in Dropbox-small-org itself.
+
+  Noted capabilities/limits for whoever picks this up:
+  - Dropbox connector can browse/search/list/read metadata across the
+    whole account, and can move/rename/copy/delete after explicit
+    per-action confirmation (delete = Dropbox's own trash, not
+    permanent).
+  - No built-in duplicate-file detector; would need to be approximated
+    from listing + metadata (name/size, and content hash *if* the
+    connector's metadata actually exposes one — unconfirmed).
+  - Given the scale (a decade-plus, multi-thousand-file account), a
+    full sweep is a big, many-call job — better scoped as its own
+    task, likely starting with one subtree (e.g. just
+    Archives-ALL/MOVING-remote) rather than the whole account.
