@@ -1,0 +1,89 @@
+#+TITLE: GTD Org Conventions
+#+STARTUP: overview
+
+Schema that both Emacs/org-mode and Claude automation follow, so
+automated writes are indistinguishable from hand-captured entries.
+Adjust the keyword/tag lists below to match your real
+org-todo-keywords / org-tag-alist, then this file is the source of
+truth for both.
+
+* Live target: Dropbox, not this repo
+
+  Proof-of-concept status as of 2026-09-06: the real capture surface
+  is the Dropbox folder Orgzly already syncs against, reached via
+  the Dropbox MCP connector, NOT the gtd/inbox.org file in this git
+  repo (that file stays as a local/offline demo of the format only).
+
+  - Folder: =/downloads-REMOTE/MOVING-remote/2021-spring-fall/Dropbox-small-org/=
+  - This folder already held live, in-use captures (e.g.
+    capture-Aug26.org, using this exact TODO/SCHEDULED/CREATED
+    shape) alongside a large pile of unrelated older files — the
+    convention below matches what was already there rather than
+    inventing a new one.
+  - The Dropbox connector can only CREATE new files, not edit
+    existing ones. So there is no single running inbox.org here —
+    each capture session is its own new file, matching the habit
+    already in place.
+  - Naming: =capture-<Mon><DD>.org= (e.g. =capture-Sep06.org=), one
+    file per capture session — reuse the same file for multiple
+    captures within one sitting, start a new one next time.
+  - This is intentionally lightweight/manual right now (Claude
+    formats and creates the file when asked, in a chat) rather than
+    a standing automated pipeline — no cron, no unattended writes.
+
+* TODO keyword sequence
+
+  TODO -> NEXT -> WAITING -> | -> DONE -> CANCELLED
+
+  Elisp for reference (adjust to taste):
+  #+begin_src emacs-lisp
+  (setq org-todo-keywords
+        '((sequence "TODO" "NEXT" "WAITING" "|" "DONE" "CANCELLED")))
+  #+end_src
+
+* Files and write ownership
+
+  | File               | Owner            | Automation may... |
+  |--------------------+------------------+--------------------|
+  | gtd/inbox.org      | Claude + human   | APPEND only        |
+  | gtd/projects.org   | human (Emacs)    | read only, for now |
+  | gtd/someday.org    | human (Emacs)    | read only, for now |
+
+  Automation never edits or deletes an existing headline anywhere.
+  The only write operation it performs is appending a new top-level
+  headline to gtd/inbox.org. Refiling inbox items into project files
+  stays a manual (or future, separately-earned) step.
+
+* Capture headline format
+
+  Every automated capture is a flat top-level headline:
+
+  #+begin_example
+  * TODO <description>                                        :tag:
+  :PROPERTIES:
+  :CREATED:  [2026-08-20 Thu 10:15]
+  :CAPTURED-BY: claude
+  :END:
+  #+end_example
+
+  - =:CREATED:= — timestamp of capture, for weekly-review staleness checks.
+  - =:CAPTURED-BY:= — always "claude" for automated entries, so a
+    linter or review script can distinguish them from hand-typed
+    captures at a glance.
+
+* Context tags
+
+  Standard GTD contexts, org-mode @-tag convention:
+
+  =@calls=  =@computer=  =@errand=  =@home=  =@waiting=  =@agenda=
+
+  A capture may carry zero or one context tag. Automation should not
+  guess a context it isn't confident about — untagged is correct
+  more often than a wrong guess, since GTD processing (a human step)
+  is where the real context gets assigned.
+
+* Every automated write is its own git commit
+
+  One capture, one commit, message prefixed =capture: <text>=. This
+  makes automation's edits reviewable and revertable exactly like
+  any other change to the tree — see capture.py.
