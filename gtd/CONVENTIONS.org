@@ -7,6 +7,30 @@ Adjust the keyword/tag lists below to match your real
 org-todo-keywords / org-tag-alist, then this file is the source of
 truth for both.
 
+* Live target: Dropbox, not this repo
+
+  Proof-of-concept status as of 2026-09-06: the real capture surface
+  is the Dropbox folder Orgzly already syncs against, reached via
+  the Dropbox MCP connector, NOT the gtd/inbox.org file in this git
+  repo (that file stays as a local/offline demo of the format only).
+
+  - Folder: =/downloads-REMOTE/MOVING-remote/2021-spring-fall/Dropbox-small-org/=
+  - This folder already held live, in-use captures (e.g.
+    capture-Aug26.org, using this exact TODO/SCHEDULED/CREATED
+    shape) alongside a large pile of unrelated older files — the
+    convention below matches what was already there rather than
+    inventing a new one.
+  - The Dropbox connector can only CREATE new files, not edit
+    existing ones. So there is no single running inbox.org here —
+    each capture session is its own new file, matching the habit
+    already in place.
+  - Naming: =capture-<Mon><DD>.org= (e.g. =capture-Sep06.org=), one
+    file per capture session — reuse the same file for multiple
+    captures within one sitting, start a new one next time.
+  - This is intentionally lightweight/manual right now (Claude
+    formats and creates the file when asked, in a chat) rather than
+    a standing automated pipeline — no cron, no unattended writes.
+
 * TODO keyword sequence
 
   TODO -> NEXT -> WAITING -> | -> DONE -> CANCELLED
