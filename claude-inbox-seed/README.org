@@ -1,0 +1,47 @@
+#+title: claude-inbox
+
+Notes left from mobile Claude Code sessions, delivered to desktop projects at
+session start.
+
+* Desktop setup (once per machine)
+#+begin_src sh
+git clone git@github.com:cicerojones/claude-inbox.git ~/claude-inbox
+chmod +x ~/claude-inbox/bin/inbox-hook.sh
+#+end_src
+
+Then add the hook. *For every project at once* (recommended), add this to
+=~/.claude/settings.json=:
+#+begin_src json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          { "type": "command",
+            "command": "bash \"$HOME/claude-inbox/bin/inbox-hook.sh\"",
+            "timeout": 30 }
+        ]
+      }
+    ]
+  }
+}
+#+end_src
+
+*Per project:* put the same block in that repo's =.claude/settings.json=,
+passing the project name as an argument (see claude-scripts for an example).
+
+* From your phone
+In a mobile Claude Code session, say something like:
+#+begin_quote
+Add a note to claude-inbox for claude-scripts: try per-octave tuning tables
+in scl_to_minilogue.
+#+end_quote
+If the session doesn't have the repo yet, Claude attaches it with =add_repo=
+and follows =CLAUDE.md=.
+
+* Layout
+- =notes/<project>/*.org= :: open notes for one project
+- =notes/all/*.org= :: open notes for every project
+- =done/<project>/= :: handled notes, kept for history
+- =bin/inbox-hook.sh= :: the SessionStart hook
